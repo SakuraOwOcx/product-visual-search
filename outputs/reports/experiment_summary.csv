@@ -1,0 +1,5 @@
+experiment_mode,model_name,num_classes,samples_per_class,train_size,val_size,test_size,top1_acc,top5_acc,recall@1,recall@5,recall@10,training_time,embedding_extraction_time_seconds,embedding_dim,checkpoint_source
+debug,resnet18,20,50,725,126.0,149,0.8791946312725144,0.9865771812080536,0.8791946308724832,0.9463087248322148,0.9731543624161074,18.684526500001084,,,
+debug,clip_vit_b_32_openai_local,20,50,725,126.0,149,,,0.8791946308724832,0.9664429530201344,0.9865771812080536,0.0,11.547331400000076,512.0,models\huggingface\timm_vit_base_patch32_clip_224_openai\open_clip_model.safetensors
+full,resnet18_full_dataset,132,all,31070,6666.0,6669,0.8851402009296746,0.9892037786774628,0.8990853201379517,0.9350727245464088,0.9466186834607888,,,512.0,C:\Users\16611\Desktop\26Spring\Big Data\Visual Search Project\outputs\checkpoints\resnet18_full_best.pth
+full,clip_vit_b_32_openai_full,132,all,31070,,6669,,,0.8283100914679862,0.9541160593792173,0.972409656620183,0.0,28.259618700001738,512.0,C:\Users\16611\Desktop\26Spring\Big Data\Visual Search Project\models\huggingface\timm_vit_base_patch32_clip_224_openai\open_clip_model.safetensors

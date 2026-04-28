@@ -1,0 +1,10 @@
+{
+  "recall@1": 0.8990853201379517,
+  "recall@5": 0.9350727245464088,
+  "recall@10": 0.9466186834607887,
+  "query_size": 6669,
+  "gallery_size": 31070,
+  "embedding_dim": 512,
+  "index_path": "C:\\Users\\16611\\Desktop\\26Spring\\Big Data\\Visual Search Project\\outputs\\indexes\\resnet18_full_gallery_index.npz",
+  "is_smoke_test": false
+}

@@ -1,0 +1,10 @@
+{
+  "test_loss": 0.4571190948902104,
+  "test_top1_acc": 0.8851402009296746,
+  "test_top5_acc": 0.9892037786774629,
+  "test_size": 6669,
+  "train_size": 31070,
+  "val_size": 6666,
+  "num_classes": 132,
+  "checkpoint": "C:\\Users\\16611\\Desktop\\26Spring\\Big Data\\Visual Search Project\\outputs\\checkpoints\\resnet18_full_best.pth"
+}

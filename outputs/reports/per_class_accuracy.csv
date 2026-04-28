@@ -1,0 +1,21 @@
+class_id,class_name,num_images,accuracy
+3,Casual Shoes,6,0.16666666666666666
+7,Heels,6,0.6666666666666666
+11,Sandals,12,0.6666666666666666
+4,Flip Flops,14,0.7857142857142857
+14,Sports Shoes,6,0.8333333333333334
+6,Handbags,9,0.8888888888888888
+8,Jeans,10,0.9
+16,Tops,10,0.9
+5,Formal Shoes,6,1.0
+0,Backpacks,9,1.0
+1,Belts,8,1.0
+9,Kurtas,8,1.0
+10,Perfume and Body Mist,11,1.0
+12,Shirts,6,1.0
+13,Socks,4,1.0
+2,Briefs,7,1.0
+15,Sunglasses,3,1.0
+17,Tshirts,5,1.0
+18,Wallets,5,1.0
+19,Watches,4,1.0

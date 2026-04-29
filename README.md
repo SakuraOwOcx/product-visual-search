@@ -11,11 +11,14 @@ The goal is to simulate a product visual search system. A query product image is
 Dataset used during the project:
 
 - Kaggle Fashion Product Images Small
+- Dataset source: https://www.kaggle.com/datasets/paramaggarwal/fashion-product-images-small
 - Expected local image folder: `data/raw/images/`
 - Expected metadata file: `data/raw/styles.csv`
 - Label used for experiments: `articleType`
 
 The project prioritizes `data/raw/images/` to avoid duplicate images from multiple extracted folders and reduce train/test leakage risk.
+
+The dataset is not included in this GitHub repository because image datasets, checkpoints, and embedding indexes are large files. Please download the dataset manually from Kaggle and place it under `data/raw/` before running the experiments.
 
 ## Existing Experimental Results
 
@@ -34,8 +37,130 @@ The summary CSV is stored at `outputs/reports/experiment_summary.csv`.
 - ResNet18 debug supervised classification and embedding retrieval.
 - CLIP ViT-B/32 frozen embedding retrieval using a local checkpoint.
 - Full-dataset ResNet18 training, checkpointing, classification evaluation, gallery indexing, and retrieval evaluation.
+- Supervised ViT-B/16 baseline scripts for local articleType fine-tuning and retrieval evaluation.
 - Streamlit product demo with model switching between CLIP and ResNet18 Full Dataset.
 - Cached embedding indexes for faster interactive search.
+
+## Supervised ViT-B/16 Baseline
+
+The project includes a third baseline: `ViT-B/16 supervised`.
+
+This baseline is designed to separate architecture and training-strategy comparisons:
+
+- ResNet18 supervised vs ViT supervised: compares CNN and Transformer architectures under local supervised fine-tuning.
+- ViT supervised vs CLIP ViT-B/32 frozen: compares local supervised fine-tuning with large-scale image-text contrastive pretraining.
+- ResNet18 supervised vs CLIP frozen: compares a traditional supervised CNN with a modern pretrained vision-language model, but this mixes architecture, objective, and pretraining data scale.
+
+Smoke test:
+
+```powershell
+& "C:\Users\16611\AppData\Local\Programs\Python\Python313\python.exe" .\scripts\train_vit_supervised.py --debug --epochs 1 --batch-size 4 --num-workers 0 --no-pretrained
+```
+
+Full fine-tuning example:
+
+```powershell
+& "C:\Users\16611\AppData\Local\Programs\Python\Python313\python.exe" .\scripts\train_vit_supervised.py --epochs 3 --batch-size 8 --num-workers 0
+```
+
+Evaluate classification:
+
+```powershell
+& "C:\Users\16611\AppData\Local\Programs\Python\Python313\python.exe" .\scripts\evaluate_vit_supervised.py --update-summary
+```
+
+Build retrieval index:
+
+```powershell
+& "C:\Users\16611\AppData\Local\Programs\Python\Python313\python.exe" .\scripts\build_vit_supervised_index.py
+```
+
+Evaluate retrieval:
+
+```powershell
+& "C:\Users\16611\AppData\Local\Programs\Python\Python313\python.exe" .\scripts\evaluate_vit_supervised_retrieval.py --update-summary
+```
+
+ViT-B/16 is heavier than ResNet18. On an RTX 4060, start with `--batch-size 8` or `--batch-size 4` if CUDA memory is tight. Mixed precision is enabled automatically on CUDA.
+
+## Run the Existing Notebook on Google Colab
+
+The existing `product_visual_search_retrieval.ipynb` can also be used as a Colab controller notebook. It does not copy all Python source code into notebook cells. Instead, it unpacks the project and calls the existing scripts under `scripts/` and modules under `src/`.
+
+1. Create `project.zip` from the project folder, but do not include `data/`, `models/`, `outputs/checkpoints/`, `outputs/indexes/`, `.git/`, or large zip/checkpoint/index files.
+
+```powershell
+Compress-Archive -Path .\* -DestinationPath .\project.zip -Force
+```
+
+If needed, remove large ignored artifacts before zipping or create the zip from a clean Git checkout.
+
+2. Prepare the dataset zip as `products10k.zip`. The extracted dataset should contain an `images/` folder and `styles.csv`.
+
+3. Upload both files to Google Drive:
+
+```text
+MyDrive/product_visual_search/project.zip
+MyDrive/product_visual_search/products10k.zip
+```
+
+4. Open `product_visual_search_retrieval.ipynb` in Google Colab.
+
+5. Select a GPU runtime:
+
+```text
+Runtime -> Change runtime type -> Hardware accelerator -> GPU
+```
+
+6. Run the notebook section:
+
+```text
+0. Colab Setup and Cloud Training Preparation
+```
+
+This section mounts Google Drive, unzips the project into `/content/product_visual_search`, unzips the dataset into `/content/data/products10k`, and links the local Colab dataset copy into `data/raw/` so training does not read thousands of images directly from Drive.
+
+7. Run the ViT supervised training cell. The default Colab settings are intentionally conservative:
+
+```text
+VIT_EPOCHS = 3
+VIT_BATCH_SIZE = 8
+VIT_NUM_WORKERS = 2
+```
+
+The cell calls:
+
+```bash
+python scripts/train_vit_supervised.py --epochs 3 --batch-size 8 --num-workers 2 --device cuda
+```
+
+8. Run the ViT evaluation, index, and retrieval cells:
+
+```bash
+python scripts/evaluate_vit_supervised.py --update-summary
+python scripts/build_vit_supervised_index.py
+python scripts/evaluate_vit_supervised_retrieval.py --update-summary
+```
+
+9. Run the result sync cell. It copies the ViT checkpoint, gallery index, metrics JSON files, and `experiment_summary.csv` back to:
+
+```text
+MyDrive/product_visual_search/outputs/
+```
+
+10. Run the result display cell to compare:
+
+- `ResNet18 supervised`
+- `ViT-B/16 supervised`
+- `CLIP ViT-B/32 frozen`
+
+Common Colab issues:
+
+- CUDA OOM: reduce `VIT_BATCH_SIZE` from 8 to 4 or 2.
+- Slow Drive I/O: do not train directly from Drive image paths. Use the setup cell to unzip the dataset to `/content/data/`.
+- Runtime disconnect: rerun the setup cells, then resume from the latest saved checkpoint if available.
+- Pretrained weights download failure: check Colab internet access. If downloads are blocked, run a smoke test with `--no-pretrained`, but do not use that as the formal baseline.
+- Missing `project.zip` or `products10k.zip`: verify the exact Google Drive paths under `MyDrive/product_visual_search/`.
 
 ## Full Dataset ResNet18 Results
 
@@ -106,6 +231,7 @@ The app does not train models, does not run the notebook, does not download new 
 
 - `CLIP ViT-B/32`: uses the local CLIP checkpoint and the debug gallery index.
 - `ResNet18 Full Dataset`: uses a full-dataset supervised ResNet18 checkpoint and full train-gallery index after they are created.
+- `ViT-B/16 supervised`: uses a locally fine-tuned supervised Vision Transformer checkpoint and gallery index after they are created.
 
 If the ResNet18 full checkpoint or index does not exist, the app shows a clear message and keeps CLIP available. The app never trains ResNet18 from the browser.
 

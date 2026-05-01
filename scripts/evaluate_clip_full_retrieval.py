@@ -16,6 +16,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from src.product_search.clip_engine import CLIPImageDataset, load_clip_model  # noqa: E402
 from src.product_search.config import BATCH_SIZE, CLIP_FULL_INDEX_PATH, DEVICE, NUM_WORKERS, REPORT_DIR  # noqa: E402
 from src.product_search.data_utils import get_full_gallery_query_dataframes  # noqa: E402
+from src.product_search.path_utils import to_project_relative  # noqa: E402
 
 
 METRICS_JSON = REPORT_DIR / "clip_full_retrieval_metrics.json"
@@ -127,14 +128,14 @@ def main():
         "embedding_dim": int(gallery_embeddings.shape[1]),
         "embedding_extraction_time_seconds": float(elapsed),
         "checkpoint_source": checkpoint_source,
-        "index_path": str(CLIP_FULL_INDEX_PATH),
+        "index_path": to_project_relative(CLIP_FULL_INDEX_PATH),
         "is_smoke_test": args.max_query_images is not None,
     }
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
     METRICS_JSON.write_text(json.dumps(metrics, indent=2), encoding="utf-8")
     upsert_summary(metrics, metrics["is_smoke_test"])
     print(json.dumps(metrics, indent=2))
-    print(f"metrics_json={METRICS_JSON}")
+    print(f"metrics_json={to_project_relative(METRICS_JSON)}")
 
 
 if __name__ == "__main__":

@@ -16,6 +16,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.product_search.config import FULL_SPLIT_CSV, REPORT_DIR, RESNET18_FULL_BEST_CHECKPOINT  # noqa: E402
+from src.product_search.data_utils import load_full_split_dataframe  # noqa: E402
+from src.product_search.path_utils import resolve_project_path, to_project_relative  # noqa: E402
 from src.product_search.resnet_engine import get_resnet_eval_transform, load_resnet18_full_model  # noqa: E402
 
 
@@ -34,7 +36,7 @@ class ProductDataset(Dataset):
 
     def __getitem__(self, idx):
         row = self.df.iloc[idx]
-        image = Image.open(row["image_path"]).convert("RGB")
+        image = Image.open(resolve_project_path(row["image_path"])).convert("RGB")
         return self.transform(image), int(row["class_id"]), str(row["articleType"])
 
 
@@ -62,7 +64,7 @@ def upsert_summary(metrics):
         "training_time": np.nan,
         "embedding_extraction_time_seconds": np.nan,
         "embedding_dim": 512,
-        "checkpoint_source": str(RESNET18_FULL_BEST_CHECKPOINT),
+        "checkpoint_source": to_project_relative(RESNET18_FULL_BEST_CHECKPOINT),
     }
     if SUMMARY_CSV.exists():
         df = pd.read_csv(SUMMARY_CSV)
@@ -88,7 +90,7 @@ def main():
     device = next(model.parameters()).device
     image_size = int(checkpoint.get("image_size", 224))
     transform = get_resnet_eval_transform(image_size)
-    split_df = pd.read_csv(FULL_SPLIT_CSV)
+    split_df = load_full_split_dataframe(FULL_SPLIT_CSV)
     test_df = split_df[split_df["split"] == "test"].reset_index(drop=True)
     loader = DataLoader(ProductDataset(test_df, transform), batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers)
     criterion = nn.CrossEntropyLoss()
@@ -132,14 +134,14 @@ def main():
         "train_size": int((split_df["split"] == "train").sum()),
         "val_size": int((split_df["split"] == "val").sum()),
         "num_classes": int(checkpoint["num_classes"]),
-        "checkpoint": str(RESNET18_FULL_BEST_CHECKPOINT),
+        "checkpoint": to_project_relative(RESNET18_FULL_BEST_CHECKPOINT),
     }
     with METRICS_JSON.open("w", encoding="utf-8") as f:
         json.dump(metrics, f, indent=2)
     upsert_summary(metrics)
 
     print(json.dumps(metrics, indent=2))
-    print(f"metrics_json={METRICS_JSON}")
+    print(f"metrics_json={to_project_relative(METRICS_JSON)}")
     print(f"per_class_accuracy_csv={PER_CLASS_CSV}")
     print(f"summary_csv_updated={SUMMARY_CSV}")
 

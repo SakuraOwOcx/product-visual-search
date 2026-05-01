@@ -16,6 +16,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.product_search.config import FULL_SPLIT_CSV, REPORT_DIR, RESNET18_FULL_INDEX_PATH  # noqa: E402
+from src.product_search.data_utils import load_full_split_dataframe  # noqa: E402
+from src.product_search.path_utils import resolve_project_path, to_project_relative  # noqa: E402
 from src.product_search.resnet_engine import get_resnet_eval_transform, load_resnet18_full_model  # noqa: E402
 
 
@@ -33,7 +35,7 @@ class ProductPathDataset(Dataset):
 
     def __getitem__(self, idx):
         row = self.df.iloc[idx]
-        image = Image.open(row["image_path"]).convert("RGB")
+        image = Image.open(resolve_project_path(row["image_path"])).convert("RGB")
         return self.transform(image), str(row["articleType"])
 
 
@@ -106,7 +108,7 @@ def main():
         raise FileNotFoundError("Run scripts/build_resnet18_full_index.py first.")
     model, _, checkpoint = load_resnet18_full_model()
     transform = get_resnet_eval_transform(int(checkpoint.get("image_size", 224)))
-    split_df = pd.read_csv(FULL_SPLIT_CSV)
+    split_df = load_full_split_dataframe(FULL_SPLIT_CSV)
     query_df = split_df[split_df["split"] == "test"].reset_index(drop=True)
     if args.max_query_images is not None:
         query_df = query_df.head(args.max_query_images).reset_index(drop=True)
@@ -123,7 +125,7 @@ def main():
         "query_size": int(len(query_df)),
         "gallery_size": int(gallery_embeddings.shape[0]),
         "embedding_dim": int(gallery_embeddings.shape[1]),
-        "index_path": str(RESNET18_FULL_INDEX_PATH),
+        "index_path": to_project_relative(RESNET18_FULL_INDEX_PATH),
         "is_smoke_test": args.max_query_images is not None,
     }
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
@@ -131,7 +133,7 @@ def main():
         json.dump(metrics, f, indent=2)
     update_summary(metrics, metrics["is_smoke_test"])
     print(json.dumps(metrics, indent=2))
-    print(f"metrics_json={METRICS_JSON}")
+    print(f"metrics_json={to_project_relative(METRICS_JSON)}")
 
 
 if __name__ == "__main__":

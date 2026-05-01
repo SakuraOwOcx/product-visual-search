@@ -1,4 +1,5 @@
 import json
+import os
 from datetime import date
 from pathlib import Path
 
@@ -36,9 +37,10 @@ def fmt(value, digits=4):
 
 
 def get_font(size=28, bold=False):
+    fonts_dir = Path(os.environ.get("WINDIR", "")) / "Fonts"
     candidates = [
-        Path("C:/Windows/Fonts/calibrib.ttf" if bold else "C:/Windows/Fonts/calibri.ttf"),
-        Path("C:/Windows/Fonts/arialbd.ttf" if bold else "C:/Windows/Fonts/arial.ttf"),
+        fonts_dir / ("calibrib.ttf" if bold else "calibri.ttf"),
+        fonts_dir / ("arialbd.ttf" if bold else "arial.ttf"),
     ]
     for path in candidates:
         if path.exists():

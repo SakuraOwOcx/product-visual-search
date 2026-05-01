@@ -16,11 +16,15 @@ from src.product_search.config import (
     REPORT_DIR,
     RESNET18_FULL_BEST_CHECKPOINT,
     RESNET18_FULL_INDEX_PATH,
+    VIT_SUPERVISED_BEST_CHECKPOINT,
+    VIT_SUPERVISED_INDEX_PATH,
 )
-from src.product_search.data_utils import get_full_gallery_query_dataframes, get_gallery_query_dataframes
+from src.product_search.data_utils import get_full_gallery_query_dataframes, get_gallery_query_dataframes, load_full_split_dataframe
 from src.product_search.index_utils import build_clip_full_gallery_index, build_gallery_index, load_visual_search_index
+from src.product_search.path_utils import resolve_project_path, to_project_relative
 from src.product_search.resnet_engine import encode_resnet_pil_image, load_resnet18_full_model
 from src.product_search.search_engine import cosine_top_k
+from src.product_search.vit_engine import encode_vit_pil_image, load_vit_supervised_model
 
 
 st.set_page_config(page_title="Product Visual Search Demo", layout="wide")
@@ -34,6 +38,11 @@ def get_clip_resources():
 @st.cache_resource(show_spinner=False)
 def get_resnet_resources():
     return load_resnet18_full_model()
+
+
+@st.cache_resource(show_spinner=False)
+def get_vit_resources():
+    return load_vit_supervised_model()
 
 
 @st.cache_data(show_spinner=False)
@@ -51,7 +60,7 @@ def reset_cached_index():
 
 
 def load_image_from_path(path):
-    return Image.open(path).convert("RGB")
+    return Image.open(resolve_project_path(path)).convert("RGB")
 
 
 def show_model_comparison():
@@ -91,7 +100,7 @@ def render_results(results_df, query_class=None, query_image_id=None):
         cols = st.columns(cards_per_row)
         for col, (_, row) in zip(cols, results_df.iloc[start:start + cards_per_row].iterrows()):
             with col:
-                image_path = Path(row["image_path"])
+                image_path = resolve_project_path(row["image_path"])
                 st.image(str(image_path), use_container_width=True)
                 match_text = ""
                 if query_class is not None:
@@ -109,7 +118,7 @@ def render_results(results_df, query_class=None, query_image_id=None):
 def get_resnet_query_dataframe():
     if not FULL_SPLIT_CSV.exists():
         return pd.DataFrame()
-    split_df = pd.read_csv(FULL_SPLIT_CSV)
+    split_df = load_full_split_dataframe()
     query_df = split_df[split_df["split"] == "test"].copy()
     query_df = query_df.rename(columns={"articleType": "class_name"})
     return query_df.reset_index(drop=True)
@@ -140,6 +149,25 @@ def resnet_full_ready(index_info):
     return True, ""
 
 
+def vit_supervised_ready(index_info):
+    if index_info is None:
+        return False, "ViT supervised index is missing."
+    scope = str(index_info.get("index_scope", ""))
+    if scope.startswith("smoke"):
+        return False, "ViT index is only a smoke-test index, not a completed full train gallery index."
+    if not VIT_SUPERVISED_BEST_CHECKPOINT.exists():
+        return False, "ViT supervised checkpoint is missing."
+    try:
+        import torch
+
+        ckpt = torch.load(VIT_SUPERVISED_BEST_CHECKPOINT, map_location="cpu", weights_only=False)
+        if ckpt.get("is_smoke_test") or ckpt.get("train_config", {}).get("is_smoke_test"):
+            return False, "ViT checkpoint is a smoke-test checkpoint, not a completed supervised model."
+    except Exception as exc:
+        return False, f"Could not validate ViT checkpoint: {exc}"
+    return True, ""
+
+
 def main():
     st.title("Product Visual Search Demo")
     st.write(
@@ -151,15 +179,20 @@ def main():
         st.header("Search Settings")
         model_choice = st.selectbox(
             "Retrieval model",
-            ["CLIP ViT-B/32", "ResNet18 Full Dataset"],
+            ["CLIP ViT-B/32 frozen", "ResNet18 supervised", "ViT-B/16 supervised"],
             index=0,
         )
         top_k = st.selectbox("Top-K results", [5, 10, 20], index=0)
 
         st.divider()
         st.write("Index status")
-        selected_index_path = CLIP_FULL_INDEX_PATH if model_choice == "CLIP ViT-B/32" else RESNET18_FULL_INDEX_PATH
-        st.code(str(selected_index_path), language="text")
+        if model_choice.startswith("CLIP"):
+            selected_index_path = CLIP_FULL_INDEX_PATH
+        elif model_choice.startswith("ResNet18"):
+            selected_index_path = RESNET18_FULL_INDEX_PATH
+        else:
+            selected_index_path = VIT_SUPERVISED_INDEX_PATH
+        st.code(to_project_relative(selected_index_path), language="text")
         current_index_info = load_visual_search_index(selected_index_path)
         if current_index_info is not None:
             st.success("Cached index found.")
@@ -169,9 +202,9 @@ def main():
         else:
             st.warning("No cached index found for the selected model.")
 
-        if model_choice == "CLIP ViT-B/32" and st.button("Build / refresh full CLIP index"):
+        if model_choice.startswith("CLIP") and st.button("Build / refresh full CLIP index"):
             if not LOCAL_CLIP_CHECKPOINT.exists():
-                st.error(f"Local CLIP checkpoint not found: {LOCAL_CLIP_CHECKPOINT}")
+                st.error(f"Local CLIP checkpoint not found: {to_project_relative(LOCAL_CLIP_CHECKPOINT)}")
             else:
                 with st.spinner("Building CLIP full train-gallery index. No CLIP training, no model download."):
                     summary = build_clip_full_gallery_index()
@@ -179,25 +212,30 @@ def main():
                 st.success("CLIP full train-gallery index built.")
                 st.json(summary)
 
-        if model_choice == "ResNet18 Full Dataset":
+        if model_choice.startswith("ResNet18"):
             st.info(
                 "ResNet18 Full Dataset requires the full training and index scripts. "
                 "The app will not train or build the full index automatically."
             )
+        if model_choice.startswith("ViT"):
+            st.info(
+                "ViT-B/16 supervised requires local fine-tuning and index building first. "
+                "The app will not train ViT automatically."
+            )
 
         show_comparison = st.checkbox("Show model comparison", value=False)
 
-    if model_choice == "CLIP ViT-B/32" and not LOCAL_CLIP_CHECKPOINT.exists():
+    if model_choice.startswith("CLIP") and not LOCAL_CLIP_CHECKPOINT.exists():
         st.error(
             "Local CLIP checkpoint is missing. This app does not download models automatically. "
-            f"Expected checkpoint: {LOCAL_CLIP_CHECKPOINT}"
+            f"Expected checkpoint: {to_project_relative(LOCAL_CLIP_CHECKPOINT)}"
         )
         return
 
     if show_comparison:
         show_model_comparison()
 
-    if model_choice == "CLIP ViT-B/32":
+    if model_choice.startswith("CLIP"):
         try:
             query_df = get_full_query_dataframe()
             label_column = "articleType"
@@ -206,12 +244,18 @@ def main():
             return
         selected_index_path = CLIP_FULL_INDEX_PATH
         model_note = "Using shared full test query split. CLIP searches the full train gallery if the full CLIP index exists."
-    else:
+    elif model_choice.startswith("ResNet18"):
         query_df = get_resnet_query_dataframe()
         gallery_df = pd.DataFrame()
         label_column = "articleType"
         selected_index_path = RESNET18_FULL_INDEX_PATH
         model_note = "Using ResNet18 Full Dataset mode."
+    else:
+        query_df = get_resnet_query_dataframe()
+        gallery_df = pd.DataFrame()
+        label_column = "articleType"
+        selected_index_path = VIT_SUPERVISED_INDEX_PATH
+        model_note = "Using supervised ViT-B/16 mode."
 
     st.caption(
         f"{model_note} Query candidates: {len(query_df)} | Label column: {label_column} | Device: {DEVICE}"
@@ -267,7 +311,7 @@ def main():
             return
         index_info = load_visual_search_index(selected_index_path)
         if index_info is None:
-            if model_choice == "ResNet18 Full Dataset":
+            if model_choice.startswith("ResNet18"):
                 st.warning(
                     "ResNet18 full model or index is not available yet. Please run the full training pipeline first."
                 )
@@ -281,15 +325,26 @@ python scripts/evaluate_resnet18_full_retrieval.py
                     """.strip(),
                     language="text",
                 )
+            elif model_choice.startswith("ViT"):
+                st.warning("ViT supervised checkpoint or index is not available yet. Please run the ViT pipeline first.")
+                st.code(
+                    """
+python scripts/train_vit_supervised.py --epochs 3 --batch-size 16
+python scripts/evaluate_vit_supervised.py --update-summary
+python scripts/build_vit_supervised_index.py
+python scripts/evaluate_vit_supervised_retrieval.py --update-summary
+                    """.strip(),
+                    language="text",
+                )
             else:
                 st.warning("Please build the CLIP full gallery index from the sidebar first.")
                 st.code(
-                    '& "C:\\Users\\16611\\AppData\\Local\\Programs\\Python\\Python313\\python.exe" .\\scripts\\build_clip_full_index.py',
+                    "python .\\scripts\\build_clip_full_index.py",
                     language="powershell",
                 )
             return
 
-        if model_choice == "ResNet18 Full Dataset":
+        if model_choice.startswith("ResNet18"):
             ready, message = resnet_full_ready(index_info)
             if not ready:
                 st.warning(
@@ -297,8 +352,18 @@ python scripts/evaluate_resnet18_full_retrieval.py
                     f"{message}"
                 )
                 st.code(
-                    '& "C:\\Users\\16611\\AppData\\Local\\Programs\\Python\\Python313\\python.exe" .\\scripts\\train_resnet18_full.py --epochs 10\n'
-                    '& "C:\\Users\\16611\\AppData\\Local\\Programs\\Python\\Python313\\python.exe" .\\scripts\\build_resnet18_full_index.py',
+                    "python .\\scripts\\train_resnet18_full.py --epochs 10\n"
+                    "python .\\scripts\\build_resnet18_full_index.py",
+                    language="powershell",
+                )
+                return
+        if model_choice.startswith("ViT"):
+            ready, message = vit_supervised_ready(index_info)
+            if not ready:
+                st.warning(f"ViT-B/16 supervised is not ready for product demo search yet. {message}")
+                st.code(
+                    "python .\\scripts\\train_vit_supervised.py --epochs 3 --batch-size 16\n"
+                    "python .\\scripts\\build_vit_supervised_index.py",
                     language="powershell",
                 )
                 return
@@ -307,12 +372,15 @@ python scripts/evaluate_resnet18_full_retrieval.py
             visual_index = get_cached_visual_index(str(selected_index_path))
             gallery_embeddings = visual_index["embeddings"]
             gallery_metadata = visual_index["metadata"]
-            if model_choice == "CLIP ViT-B/32":
+            if model_choice.startswith("CLIP"):
                 model, preprocess = get_clip_resources()
                 query_embedding = encode_pil_image(model, preprocess, query_image)
-            else:
+            elif model_choice.startswith("ResNet18"):
                 model, transform, _ = get_resnet_resources()
                 query_embedding = encode_resnet_pil_image(model, transform, query_image)
+            else:
+                model, transform, _ = get_vit_resources()
+                query_embedding = encode_vit_pil_image(model, transform, query_image)
             results_df = cosine_top_k(query_embedding, gallery_embeddings, gallery_metadata, top_k=top_k)
 
         st.caption(

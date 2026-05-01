@@ -1,4 +1,4 @@
-# Product Visual Search and Retrieval
+﻿# Product Visual Search and Retrieval
 
 This course project builds a product visual search pipeline using supervised ResNet18 embeddings and frozen CLIP ViT-B/32 embeddings. The final notebook is `product_visual_search_retrieval.ipynb`.
 
@@ -54,31 +54,31 @@ This baseline is designed to separate architecture and training-strategy compari
 Smoke test:
 
 ```powershell
-& "C:\Users\16611\AppData\Local\Programs\Python\Python313\python.exe" .\scripts\train_vit_supervised.py --debug --epochs 1 --batch-size 4 --num-workers 0 --no-pretrained
+python .\scripts\train_vit_supervised.py --debug --epochs 1 --batch-size 4 --num-workers 0 --no-pretrained
 ```
 
 Full fine-tuning example:
 
 ```powershell
-& "C:\Users\16611\AppData\Local\Programs\Python\Python313\python.exe" .\scripts\train_vit_supervised.py --epochs 3 --batch-size 8 --num-workers 0
+python .\scripts\train_vit_supervised.py --epochs 3 --batch-size 8 --num-workers 0
 ```
 
 Evaluate classification:
 
 ```powershell
-& "C:\Users\16611\AppData\Local\Programs\Python\Python313\python.exe" .\scripts\evaluate_vit_supervised.py --update-summary
+python .\scripts\evaluate_vit_supervised.py --update-summary
 ```
 
 Build retrieval index:
 
 ```powershell
-& "C:\Users\16611\AppData\Local\Programs\Python\Python313\python.exe" .\scripts\build_vit_supervised_index.py
+python .\scripts\build_vit_supervised_index.py
 ```
 
 Evaluate retrieval:
 
 ```powershell
-& "C:\Users\16611\AppData\Local\Programs\Python\Python313\python.exe" .\scripts\evaluate_vit_supervised_retrieval.py --update-summary
+python .\scripts\evaluate_vit_supervised_retrieval.py --update-summary
 ```
 
 ViT-B/16 is heavier than ResNet18. On an RTX 4060, start with `--batch-size 8` or `--batch-size 4` if CUDA memory is tight. Mixed precision is enabled automatically on CUDA.
@@ -260,13 +260,13 @@ If the cache exists, the app loads it directly. If it does not exist, use the si
 Use the project Python environment:
 
 ```powershell
-& "C:\Users\16611\AppData\Local\Programs\Python\Python313\python.exe" -m streamlit run app.py
+python -m streamlit run app.py
 ```
 
 If Streamlit is missing:
 
 ```powershell
-& "C:\Users\16611\AppData\Local\Programs\Python\Python313\python.exe" -m pip install streamlit
+python -m pip install streamlit
 ```
 
 ## Full ResNet18 Training Pipeline
@@ -276,49 +276,49 @@ The ResNet18 full-dataset pipeline is intentionally implemented as standalone sc
 1. Prepare the full split:
 
 ```powershell
-& "C:\Users\16611\AppData\Local\Programs\Python\Python313\python.exe" .\scripts\prepare_full_dataset_split.py
+python .\scripts\prepare_full_dataset_split.py
 ```
 
 2. Train ResNet18 on the full split:
 
 ```powershell
-& "C:\Users\16611\AppData\Local\Programs\Python\Python313\python.exe" .\scripts\train_resnet18_full.py --epochs 10
+python .\scripts\train_resnet18_full.py --epochs 10
 ```
 
 3. Resume interrupted training:
 
 ```powershell
-& "C:\Users\16611\AppData\Local\Programs\Python\Python313\python.exe" .\scripts\train_resnet18_full.py --resume
+python .\scripts\train_resnet18_full.py --resume
 ```
 
 4. Evaluate classification performance:
 
 ```powershell
-& "C:\Users\16611\AppData\Local\Programs\Python\Python313\python.exe" .\scripts\evaluate_resnet18_full.py
+python .\scripts\evaluate_resnet18_full.py
 ```
 
 5. Build the ResNet18 full gallery index:
 
 ```powershell
-& "C:\Users\16611\AppData\Local\Programs\Python\Python313\python.exe" .\scripts\build_resnet18_full_index.py
+python .\scripts\build_resnet18_full_index.py
 ```
 
 6. Evaluate ResNet18 retrieval:
 
 ```powershell
-& "C:\Users\16611\AppData\Local\Programs\Python\Python313\python.exe" .\scripts\evaluate_resnet18_full_retrieval.py
+python .\scripts\evaluate_resnet18_full_retrieval.py
 ```
 
 7. Start the Streamlit app:
 
 ```powershell
-& "C:\Users\16611\AppData\Local\Programs\Python\Python313\python.exe" -m streamlit run app.py
+python -m streamlit run app.py
 ```
 
 8. Generate the full report:
 
 ```powershell
-& "C:\Users\16611\AppData\Local\Programs\Python\Python313\python.exe" .\scripts\generate_full_report_docx.py
+python .\scripts\generate_full_report_docx.py
 ```
 
 ## Smoke Tests
@@ -326,15 +326,15 @@ The ResNet18 full-dataset pipeline is intentionally implemented as standalone sc
 Before full training, use small smoke tests:
 
 ```powershell
-& "C:\Users\16611\AppData\Local\Programs\Python\Python313\python.exe" .\scripts\train_resnet18_full.py --epochs 1 --batch-size 16 --max-train-batches 5 --max-val-batches 2 --num-workers 0
+python .\scripts\train_resnet18_full.py --epochs 1 --batch-size 16 --max-train-batches 5 --max-val-batches 2 --num-workers 0
 ```
 
 ```powershell
-& "C:\Users\16611\AppData\Local\Programs\Python\Python313\python.exe" .\scripts\build_resnet18_full_index.py --max-images 64
+python .\scripts\build_resnet18_full_index.py --max-images 64
 ```
 
 ```powershell
-& "C:\Users\16611\AppData\Local\Programs\Python\Python313\python.exe" .\scripts\evaluate_resnet18_full_retrieval.py --max-query-images 64
+python .\scripts\evaluate_resnet18_full_retrieval.py --max-query-images 64
 ```
 
 Smoke-test indexes are marked as `smoke train gallery`, so the Streamlit app will not present them as completed full-dataset indexes.

@@ -7,7 +7,7 @@
   "num_classes": 132,
   "embedding_dim": 512,
   "embedding_extraction_time_seconds": 28.259618700001738,
-  "checkpoint_source": "C:\\Users\\16611\\Desktop\\26Spring\\Big Data\\Visual Search Project\\models\\huggingface\\timm_vit_base_patch32_clip_224_openai\\open_clip_model.safetensors",
-  "index_path": "C:\\Users\\16611\\Desktop\\26Spring\\Big Data\\Visual Search Project\\outputs\\indexes\\clip_full_gallery_index.npz",
+  "checkpoint_source": "models/huggingface/timm_vit_base_patch32_clip_224_openai/open_clip_model.safetensors",
+  "index_path": "outputs/indexes/clip_full_gallery_index.npz",
   "is_smoke_test": false
 }

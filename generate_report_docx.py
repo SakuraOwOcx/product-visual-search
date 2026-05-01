@@ -1,5 +1,6 @@
 from pathlib import Path
 from datetime import date
+import os
 
 try:
     import pandas as pd
@@ -132,9 +133,10 @@ def add_results_table(doc, rows):
 
 
 def get_font(size=30, bold=False):
+    fonts_dir = Path(os.environ.get("WINDIR", "")) / "Fonts"
     font_candidates = [
-        Path("C:/Windows/Fonts/calibrib.ttf" if bold else "C:/Windows/Fonts/calibri.ttf"),
-        Path("C:/Windows/Fonts/arialbd.ttf" if bold else "C:/Windows/Fonts/arial.ttf"),
+        fonts_dir / ("calibrib.ttf" if bold else "calibri.ttf"),
+        fonts_dir / ("arialbd.ttf" if bold else "arial.ttf"),
     ]
     for font_path in font_candidates:
         if font_path.exists():

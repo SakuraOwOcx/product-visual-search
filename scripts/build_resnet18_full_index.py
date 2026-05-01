@@ -15,6 +15,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.product_search.config import FULL_SPLIT_CSV, RESNET18_FULL_INDEX_PATH  # noqa: E402
+from src.product_search.data_utils import load_full_split_dataframe  # noqa: E402
+from src.product_search.path_utils import resolve_project_path, to_project_relative  # noqa: E402
 from src.product_search.resnet_engine import get_resnet_eval_transform, load_resnet18_full_model  # noqa: E402
 
 
@@ -28,8 +30,9 @@ class ProductPathDataset(Dataset):
 
     def __getitem__(self, idx):
         row = self.df.iloc[idx]
-        image = Image.open(row["image_path"]).convert("RGB")
-        return self.transform(image), str(row["image_id"]), str(row["image_path"]), str(row["articleType"]), str(row["split"])
+        image_path = resolve_project_path(row["image_path"])
+        image = Image.open(image_path).convert("RGB")
+        return self.transform(image), str(row["image_id"]), to_project_relative(image_path), str(row["articleType"]), str(row["split"])
 
 
 def main():
@@ -46,7 +49,7 @@ def main():
     device = next(model.parameters()).device
     transform = get_resnet_eval_transform(int(checkpoint.get("image_size", 224)))
 
-    split_df = pd.read_csv(FULL_SPLIT_CSV)
+    split_df = load_full_split_dataframe(FULL_SPLIT_CSV)
     gallery_splits = ["train", "val"] if args.include_val_as_gallery else ["train"]
     gallery_df = split_df[split_df["split"].isin(gallery_splits)].reset_index(drop=True)
     if args.max_images is not None:
@@ -85,7 +88,7 @@ def main():
     print(f"gallery_size={len(gallery_df)}")
     print(f"embedding_shape={embeddings.shape}")
     print(f"index_scope={index_scope}")
-    print(f"output_path={RESNET18_FULL_INDEX_PATH}")
+    print(f"output_path={to_project_relative(RESNET18_FULL_INDEX_PATH)}")
 
 
 if __name__ == "__main__":

@@ -9,6 +9,7 @@ from torch.utils.data import DataLoader, Dataset
 import open_clip
 
 from .config import BATCH_SIZE, DEVICE, LOCAL_CLIP_CHECKPOINT, MODEL_NAME, NUM_WORKERS
+from .path_utils import resolve_project_path, to_project_relative
 
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
@@ -24,9 +25,9 @@ class CLIPImageDataset(Dataset):
 
     def __getitem__(self, idx):
         row = self.df.iloc[idx]
-        image_path = Path(row["image_path"])
+        image_path = resolve_project_path(row["image_path"])
         image = Image.open(image_path).convert("RGB")
-        return self.preprocess(image), int(row["class_id"]), str(image_path)
+        return self.preprocess(image), int(row["class_id"]), to_project_relative(image_path)
 
 
 def load_clip_model(checkpoint_path=LOCAL_CLIP_CHECKPOINT):

@@ -8,6 +8,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.product_search.config import CLIP_FULL_INDEX_PATH, LOCAL_CLIP_CHECKPOINT  # noqa: E402
 from src.product_search.index_utils import build_clip_full_gallery_index  # noqa: E402
+from src.product_search.path_utils import to_project_relative  # noqa: E402
 
 
 def main():
@@ -19,7 +20,7 @@ def main():
         raise FileNotFoundError(f"Local CLIP checkpoint not found: {LOCAL_CLIP_CHECKPOINT}")
 
     summary = build_clip_full_gallery_index(max_images=args.max_images, index_path=CLIP_FULL_INDEX_PATH)
-    print(f"checkpoint_source={LOCAL_CLIP_CHECKPOINT}")
+    print(f"checkpoint_source={to_project_relative(LOCAL_CLIP_CHECKPOINT)}")
     print(f"download_new_model=False")
     for key, value in summary.items():
         print(f"{key}={value}")

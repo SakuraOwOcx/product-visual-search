@@ -5,8 +5,9 @@ import numpy as np
 import pandas as pd
 
 from .clip_engine import extract_gallery_embeddings, load_clip_model
-from .config import CLIP_FULL_INDEX_PATH, INDEX_PATH, LOCAL_CLIP_CHECKPOINT, RESNET18_FULL_INDEX_PATH
-from .data_utils import get_full_gallery_query_dataframes, get_gallery_query_dataframes
+from .config import CLIP_FULL_INDEX_PATH, INDEX_PATH, LOCAL_CLIP_CHECKPOINT, RESNET18_FULL_INDEX_PATH, VIT_SUPERVISED_INDEX_PATH
+from .data_utils import get_full_gallery_query_dataframes, get_gallery_query_dataframes, relocate_image_paths
+from .path_utils import to_project_relative
 
 
 def index_exists(index_path=INDEX_PATH):
@@ -19,12 +20,13 @@ def save_gallery_index(embeddings, gallery_df, index_path=INDEX_PATH, model_name
     df = gallery_df.copy()
     if "class_name" not in df.columns and "articleType" in df.columns:
         df["class_name"] = df["articleType"]
+    df = relocate_image_paths(df)
     metadata = df[["image_id", "image_path", "class_id", "class_name"]].to_dict("records")
     np.savez_compressed(
         index_path,
         embeddings=embeddings.astype(np.float32),
         metadata_json=json.dumps(metadata),
-        checkpoint_source=str(LOCAL_CLIP_CHECKPOINT),
+        checkpoint_source=to_project_relative(LOCAL_CLIP_CHECKPOINT),
         model_name=np.array(model_name),
         index_scope=np.array(index_scope),
         embedding_dim=np.array(embeddings.shape[1]),
@@ -39,6 +41,7 @@ def load_gallery_index(index_path=INDEX_PATH):
     data = np.load(index_path, allow_pickle=False)
     embeddings = data["embeddings"]
     metadata = json.loads(str(data["metadata_json"]))
+    metadata = relocate_image_paths(pd.DataFrame(metadata)).to_dict("records")
     return embeddings, metadata
 
 
@@ -51,6 +54,7 @@ def load_visual_search_index(index_path):
 
     if "metadata_json" in data.files:
         metadata = json.loads(str(data["metadata_json"]))
+        metadata = relocate_image_paths(pd.DataFrame(metadata)).to_dict("records")
         model_name = str(data["model_name"]) if "model_name" in data.files else "clip"
         index_scope = str(data["index_scope"]) if "index_scope" in data.files else "debug gallery"
     else:
@@ -68,6 +72,7 @@ def load_visual_search_index(index_path):
             }
             for image_id, image_path, article_type, split in zip(image_ids, image_paths, article_types, splits)
         ]
+        metadata = relocate_image_paths(pd.DataFrame(metadata)).to_dict("records")
         model_name = str(data["model_name"]) if "model_name" in data.files else "resnet18"
         index_scope = str(data["index_scope"]) if "index_scope" in data.files else "full train gallery"
 
@@ -78,7 +83,7 @@ def load_visual_search_index(index_path):
         "index_scope": index_scope,
         "embedding_dim": int(embeddings.shape[1]) if embeddings.ndim == 2 else None,
         "gallery_size": int(embeddings.shape[0]) if embeddings.ndim == 2 else 0,
-        "index_path": str(index_path),
+        "index_path": to_project_relative(index_path),
     }
 
 
@@ -94,6 +99,10 @@ def load_resnet18_full_index():
     return load_visual_search_index(RESNET18_FULL_INDEX_PATH)
 
 
+def load_vit_supervised_index():
+    return load_visual_search_index(VIT_SUPERVISED_INDEX_PATH)
+
+
 def build_gallery_index(max_images=None, index_path=INDEX_PATH):
     gallery_df, query_df, id_to_class, label_column = get_gallery_query_dataframes()
     if max_images is not None:
@@ -102,7 +111,7 @@ def build_gallery_index(max_images=None, index_path=INDEX_PATH):
     embeddings, _, _ = extract_gallery_embeddings(model, preprocess, gallery_df)
     saved_path = save_gallery_index(embeddings, gallery_df, index_path=index_path)
     summary = {
-        "index_path": str(saved_path),
+        "index_path": to_project_relative(saved_path),
         "gallery_size": int(len(gallery_df)),
         "embedding_shape": tuple(embeddings.shape),
         "query_size": int(len(query_df)),
@@ -127,7 +136,7 @@ def build_clip_full_gallery_index(max_images=None, index_path=CLIP_FULL_INDEX_PA
         index_scope=index_scope,
     )
     return {
-        "index_path": str(saved_path),
+        "index_path": to_project_relative(saved_path),
         "gallery_size": int(len(gallery_df)),
         "embedding_shape": tuple(embeddings.shape),
         "query_size": int(len(query_df)),

@@ -6,10 +6,13 @@ import numpy as np
 import pandas as pd
 from PIL import Image, ImageFile
 
+import sys
+
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(PROJECT_ROOT))
 DATA_RAW_DIR = PROJECT_ROOT / "data" / "raw"
 IMAGE_DIR = DATA_RAW_DIR / "images"
 STYLES_CSV = DATA_RAW_DIR / "styles.csv"
@@ -21,6 +24,8 @@ STATS_CSV = REPORT_DIR / "full_dataset_stats.csv"
 DROPPED_CLASSES_CSV = REPORT_DIR / "dropped_rare_classes.csv"
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 SEED = 42
+
+from src.product_search.path_utils import to_project_relative  # noqa: E402
 
 
 def is_readable_image(path):
@@ -92,7 +97,7 @@ def main():
         rows.append(
             {
                 "image_id": row.image_id,
-                "image_path": str(image_path),
+                "image_path": to_project_relative(image_path),
                 "articleType": str(row.articleType),
             }
         )

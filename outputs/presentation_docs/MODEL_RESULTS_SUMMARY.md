@@ -1,8 +1,6 @@
 # Product Visual Search Model Results Summary
 
-This summary is based on the final Colab output package in:
-
-`D:\Codex\product-visual-search\ouputs_v3`
+This summary is based on the final Colab output package stored under `submission_assets/final_outputs_zips/`.
 
 The final results are stored across these files:
 
@@ -135,4 +133,3 @@ The final output is complete, but it is split across two zip files:
 Both zip files should be kept. The small `outputs_after_resnet` package is an intermediate backup after the ResNet stage, not the final all-model output.
 
 One minor caveat: `resnet18_full_training_log.csv` contains previous ResNet training records as well as this latest 20-epoch run. The final JSON metrics and checkpoint files are the reliable source for the final reported ResNet results.
-

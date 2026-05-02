@@ -161,7 +161,8 @@ def build_markdown(summary, full_stats, train_log, test_metrics, retrieval_metri
     for model_name, label in [
         ("resnet18", "ResNet18 debug"),
         ("clip_vit_b_32_openai_local", "CLIP debug"),
-        ("clip_vit_b_32_openai_full", "CLIP full dataset"),
+        ("clip_vit_b_32_openai_full", "Frozen CLIP full dataset"),
+        ("clip_vit_b_32_articletype_lite", "Fine-tuned CLIP full dataset"),
         ("resnet18_full_dataset", "ResNet18 full dataset"),
     ]:
         rows = summary[summary["model_name"] == model_name]
@@ -180,9 +181,9 @@ Author: Student Name
 
 ## Abstract
 
-This project implements an end-to-end product visual search pipeline. It includes a supervised ResNet18 debug baseline, a frozen CLIP ViT-B/32 retrieval model, a full-dataset ResNet18 training pipeline, synchronized full-split CLIP retrieval, and a Streamlit product demo. Retrieval is evaluated with Recall@K because product search returns ranked candidate products rather than only one class label.
+This project implements an end-to-end product visual search pipeline. It includes a supervised ResNet18 baseline, a frozen CLIP ViT-B/32 retrieval model, and a lightweight fine-tuned CLIP ViT-B/32 model trained with articleType supervision. Retrieval is evaluated with Recall@K because product search returns ranked candidate products rather than only one class label.
 
-The full ResNet18 model reaches test Top-1 accuracy of {fmt(test_metrics.get('test_top1_acc'))} and test Top-5 accuracy of {fmt(test_metrics.get('test_top5_acc'))}. In full retrieval, ResNet18 achieves Recall@1 / Recall@5 / Recall@10 of {fmt(retrieval_metrics.get('recall@1'))} / {fmt(retrieval_metrics.get('recall@5'))} / {fmt(retrieval_metrics.get('recall@10'))}. The full CLIP index uses the same full train/test split, allowing the demo to compare both models without query/gallery mismatch.
+The full ResNet18 model reaches test Top-1 accuracy of {fmt(test_metrics.get('test_top1_acc'))} and test Top-5 accuracy of {fmt(test_metrics.get('test_top5_acc'))}. In full retrieval, ResNet18 achieves Recall@1 / Recall@5 / Recall@10 of {fmt(retrieval_metrics.get('recall@1'))} / {fmt(retrieval_metrics.get('recall@5'))} / {fmt(retrieval_metrics.get('recall@10'))}. Frozen CLIP and fine-tuned CLIP use the same full train/test split, allowing fair comparison without query/gallery mismatch.
 
 ## Introduction
 
@@ -204,9 +205,9 @@ The project avoids the duplicate extracted folder under `data/raw/myntradataset/
 
 ResNet18 is used as a supervised baseline trained on articleType labels. Its final classification layer is replaced for the dataset classes, and the penultimate 512-dimensional feature vector is used as the retrieval embedding.
 
-CLIP is used as a frozen pretrained visual-semantic embedding model. It is not fine-tuned on the local dataset. This provides a useful comparison between a dataset-specific supervised model and a general pretrained foundation model.
+CLIP is evaluated in two ways. Frozen CLIP uses pretrained visual-semantic embeddings without local training. Fine-tuned CLIP starts from the same pretrained weights but adapts part of the image encoder with articleType supervision.
 
-Both methods convert images into embeddings and use cosine similarity for Top-K product retrieval. Recall@K measures whether a same-articleType item appears in the first K retrieved products.
+All model routes convert images into embeddings and use cosine similarity for Top-K product retrieval. Recall@K measures whether a same-articleType item appears in the first K retrieved products.
 
 ## Full ResNet18 Results
 
@@ -229,13 +230,13 @@ Both methods convert images into embeddings and use cosine similarity for Top-K 
 
 ## Product Demo
 
-The Streamlit demo supports image upload, random query selection, Top-K retrieval, and model switching between CLIP ViT-B/32 and ResNet18 Full Dataset. Both models now use the same full split in the app: test images are sampled as queries and train images form the gallery. CLIP uses the local checkpoint and full CLIP train-gallery index. ResNet18 uses the full supervised checkpoint and full train-gallery index.
+The Streamlit demo supports image upload, random query selection, Top-K retrieval, and model switching between ResNet18 Full Dataset, Frozen CLIP ViT-B/32, and Fine-tuned CLIP ViT-B/32. The models use the same full split in the app: test images are sampled as queries and train images form the gallery.
 
 This synchronized split is important for a fair demo. Previously, a random query could be a test image for one model but a gallery image for another model. The current design avoids that confusion and makes model switching easier to explain.
 
 ## Discussion
 
-ResNet18 is strong at dataset-specific articleType recognition because it is trained directly on the target labels. CLIP is strong at Top-K recall because its pretrained representation captures broader visual-semantic relationships. In a product search business scenario, CLIP can serve as a strong recall model, while ResNet18 can serve as a lightweight supervised baseline or a category-aware model.
+ResNet18 is strong at dataset-specific articleType recognition because it is trained directly on the target labels. Frozen CLIP is strong at Top-K recall because its pretrained representation captures broader visual-semantic relationships. Fine-tuned CLIP tests whether lightweight domain adaptation can improve the pretrained model's first-rank retrieval behavior.
 
 ## Business Interpretation
 
@@ -243,7 +244,7 @@ The system can support image-based product discovery, similar item recommendatio
 
 ## Limitations and Future Work
 
-The current relevance metric is articleType-level rather than exact SKU-level similarity. The system does not yet use FAISS, metadata ranking, or a production backend. Future work should add approximate nearest-neighbor indexing, fine-tune CLIP, include product metadata ranking, evaluate SKU-level retrieval when labels are available, and deploy a production web service.
+The current relevance metric is articleType-level rather than exact SKU-level similarity. The system does not yet use FAISS, metadata ranking, or a production backend. Future work should add approximate nearest-neighbor indexing, stronger metric-learning objectives, product metadata ranking, SKU-level retrieval evaluation when labels are available, and a production web service.
 """
 
 
@@ -256,7 +257,8 @@ def main():
     for model_name, label in [
         ("resnet18", "ResNet18 debug"),
         ("clip_vit_b_32_openai_local", "CLIP debug"),
-        ("clip_vit_b_32_openai_full", "CLIP full"),
+        ("clip_vit_b_32_openai_full", "Frozen CLIP full"),
+        ("clip_vit_b_32_articletype_lite", "Fine-tuned CLIP full"),
         ("resnet18_full_dataset", "ResNet18 full"),
     ]:
         rows = summary[summary["model_name"] == model_name]
@@ -298,14 +300,14 @@ def main():
     doc.add_page_break()
 
     doc.add_heading("Abstract", level=1)
-    add_p(doc, "This project implements an end-to-end product visual search and retrieval pipeline for fashion product images. The system supports both supervised convolutional representation learning with ResNet18 and frozen pretrained visual-semantic retrieval with CLIP ViT-B/32. Instead of treating the task as ordinary image classification, the project frames product understanding as a search problem: a query image is embedded into a vector representation and compared against a gallery of product embeddings to retrieve visually similar items.")
-    add_p(doc, "The project begins with a debug-scale experiment to validate the pipeline safely, then extends ResNet18 to the full cleaned dataset of 44,405 valid images across 132 articleType categories. CLIP is also evaluated on the same full train/test split so the Streamlit demo can switch between CLIP and ResNet18 using aligned query and gallery sets. Retrieval quality is measured with Recall@K, which better reflects real product search behavior than classification accuracy alone.")
-    add_p(doc, "On the full dataset, ResNet18 reaches a test Top-1 accuracy of 0.8851 and Top-5 accuracy of 0.9892. For retrieval, ResNet18 full dataset achieves Recall@1 of 0.8991, Recall@5 of 0.9351, and Recall@10 of 0.9466. CLIP full retrieval achieves Recall@1 of 0.8283, Recall@5 of 0.9541, and Recall@10 of 0.9724. These results show that ResNet18 is strong at dataset-specific category recognition, while CLIP provides very strong Top-K candidate recall without local supervised training.")
+    add_p(doc, "This project implements an end-to-end product visual search and retrieval pipeline for fashion product images. The system compares supervised convolutional representation learning with ResNet18, frozen pretrained visual-semantic retrieval with CLIP ViT-B/32, and lightweight supervised CLIP fine-tuning. Instead of treating the task as ordinary image classification, the project frames product understanding as a search problem: a query image is embedded into a vector representation and compared against a gallery of product embeddings to retrieve visually similar items.")
+    add_p(doc, "The final pipeline uses the full cleaned dataset of 44,405 valid images across 132 articleType categories. ResNet18, frozen CLIP, and fine-tuned CLIP are evaluated on the same full train/test split. Retrieval quality is measured with Recall@K, which better reflects real product search behavior than classification accuracy alone.")
+    add_p(doc, "On the full dataset, ResNet18 reaches a test Top-1 accuracy of 0.8947 and Recall@1 of 0.9016. Frozen CLIP achieves Recall@5 of 0.9543 and Recall@10 of 0.9726, the strongest broad top-k recall. Fine-tuned CLIP reaches test Top-1 accuracy of 0.8667 and improves Recall@1 over frozen CLIP from 0.8289 to 0.8613, showing the effect of lightweight domain adaptation.")
 
     doc.add_heading("Introduction", level=1)
     add_p(doc, "Product visual search is a common capability in modern e-commerce and content platforms. A user may see a product in a social media post, a short video, a screenshot, or a catalog image, but may not know the exact brand, product title, or keywords needed to search for it. In these cases, image-based search provides a more natural interaction: the user supplies an image, and the system returns a ranked list of visually similar products.")
     add_p(doc, "This task is related to image classification, but it is not the same problem. Classification asks the model to assign a single label such as 'Tshirts' or 'Flip Flops'. Visual search asks the system to retrieve multiple relevant products from a gallery. A perfect class prediction does not guarantee useful search results, and a visually useful search result may still have small differences in color, shape, brand, or style. Therefore, the project evaluates both supervised classification metrics and retrieval-oriented Recall@K metrics.")
-    add_p(doc, "The motivation of this project is to connect convolutional neural networks, representation learning, and search retrieval in a realistic product discovery setting. ResNet18 is used as a supervised baseline that learns dataset-specific articleType boundaries. CLIP is used as a pretrained foundation model that produces general visual-semantic embeddings without fine-tuning. Both models are then used as embedding extractors for a Top-K visual retrieval system.")
+    add_p(doc, "The motivation of this project is to connect convolutional neural networks, representation learning, pretrained foundation models, and search retrieval in a realistic product discovery setting. ResNet18 is used as a supervised baseline that learns dataset-specific articleType boundaries. Frozen CLIP is used as a pretrained foundation model, while fine-tuned CLIP adapts the pretrained representation to the fashion product domain.")
     add_p(doc, "The final deliverable is not only a notebook experiment. The project also includes reusable scripts for full-dataset training, checkpointing, evaluation, and index construction, plus a Streamlit demo that allows users to upload a product image or choose a random query image and compare CLIP and ResNet18 retrieval results interactively.")
     doc.add_page_break()
 
@@ -326,9 +328,9 @@ def main():
     doc.add_heading("ResNet18 Supervised Baseline", level=2)
     add_p(doc, "ResNet18 is a residual convolutional neural network. Its residual connections allow layers to learn corrections to earlier representations, which makes optimization easier than a plain deep convolutional network. In this project, ResNet18 is initialized with ImageNet pretrained weights, then its final fully connected layer is replaced with a new classification head matching the number of articleType classes.")
     add_p(doc, "The supervised training objective is cross-entropy loss. During training, the model learns to classify product images into articleType categories. After training, the final classification layer is not used for retrieval. Instead, the 512-dimensional feature vector before the final classifier is extracted and L2-normalized. This vector becomes the image embedding used for similarity search.")
-    doc.add_heading("CLIP-based Frozen Embedding Retrieval", level=2)
-    add_p(doc, "CLIP, or Contrastive Language-Image Pre-training, learns image and text representations from large-scale image-text pairs. The model used here is CLIP ViT-B/32 through OpenCLIP, loaded from a local checkpoint. CLIP is not trained or fine-tuned on the current product dataset. It is used as a frozen image encoder to test whether a pretrained vision-language model can serve as a strong retrieval embedding model.")
-    add_p(doc, "The CLIP setup is valuable because it represents a practical product scenario. A platform may want to launch visual search before collecting enough labeled product data for supervised training. In that case, a frozen pretrained model can provide a strong first version of retrieval. The project later synchronizes CLIP and ResNet18 to the same full train/test split for fair demo behavior.")
+    doc.add_heading("CLIP-based Retrieval and Fine-tuning", level=2)
+    add_p(doc, "CLIP, or Contrastive Language-Image Pre-training, learns image and text representations from large-scale image-text pairs. The frozen CLIP route uses CLIP ViT-B/32 through OpenCLIP, loaded from a local checkpoint, without training on the current product dataset. This tests whether a pretrained vision-language model can serve as a strong retrieval embedding model before task-specific adaptation.")
+    add_p(doc, "The project also includes a lightweight fine-tuned CLIP route. It starts from the same pretrained CLIP weights, freezes most parameters, and trains a small trainable portion plus a classification head using articleType labels. This tests whether supervised adaptation can improve first-rank retrieval while keeping training cost manageable.")
     doc.add_heading("Image Embedding and Cosine Similarity Retrieval", level=2)
     add_p(doc, "For retrieval, every gallery image is converted into an embedding vector and stored in an index file. At search time, the query image is encoded with the selected model, normalized, and compared against gallery embeddings using cosine similarity. The Top-K most similar gallery items are returned to the user.")
     add_p(doc, "Recall@K measures whether at least one item with the same articleType appears in the top K retrieved results. Recall@1 is strict because only the first retrieved item counts. Recall@5 and Recall@10 better reflect search and recommendation scenarios, where users inspect a set of candidate products rather than only one result.")
@@ -344,6 +346,10 @@ def main():
         "`scripts/evaluate_resnet18_full_retrieval.py` computes full retrieval Recall@K.",
         "`scripts/build_clip_full_index.py` builds the CLIP train-gallery embedding index on the same split.",
         "`scripts/evaluate_clip_full_retrieval.py` evaluates CLIP retrieval on the same full query set.",
+        "`scripts/train_clip_articletype.py` fine-tunes CLIP with articleType supervision.",
+        "`scripts/evaluate_clip_articletype.py` evaluates the fine-tuned CLIP classifier.",
+        "`scripts/build_clip_articletype_index.py` builds the fine-tuned CLIP train-gallery embedding index.",
+        "`scripts/evaluate_clip_articletype_retrieval.py` evaluates fine-tuned CLIP retrieval.",
         "`app.py` provides the Streamlit product demo with model switching.",
     ])
     add_p(doc, "The Streamlit application uses cached gallery indexes instead of computing gallery embeddings at request time. This makes the app responsive and avoids accidental long-running computation during a product demo. The app also validates whether indexes are smoke-test artifacts or full indexes, which reduces the risk of presenting incomplete results as final.")
@@ -352,17 +358,18 @@ def main():
     add_bullets(doc, [
         "ResNet18 debug: 20 classes, 50 images per class.",
         "CLIP debug: frozen ViT-B/32 image encoder on the debug subset.",
-        "ResNet18 full: 132 articleType classes, ImageNet initialization, AdamW, 10 epochs, CUDA mixed precision.",
+        "ResNet18 full: 132 articleType classes, ImageNet initialization, AdamW, 20 epochs, CUDA mixed precision.",
         "CLIP full: frozen ViT-B/32 image encoder using the same full train-gallery and test-query split as ResNet18 full.",
+        "Fine-tuned CLIP full: OpenAI CLIP ViT-B/32 initialization, articleType supervision, lightweight trainable parameter ratio.",
     ])
-    add_p(doc, "The full ResNet18 model is trained for 10 epochs with batch size 64 and num_workers 4. CUDA is used, and mixed precision is enabled when available. The training script saves both a last checkpoint and the best validation Top-1 checkpoint after every epoch. This makes the process recoverable and traceable.")
-    add_p(doc, "The full CLIP experiment does not train any model. It loads the local OpenCLIP checkpoint and extracts embeddings for the full train gallery. This allows the Streamlit app to compare CLIP and ResNet18 on the same random query set without split mismatch.")
+    add_p(doc, "The full ResNet18 model is trained for 20 epochs with batch size 64. CUDA is used when available, and mixed precision is enabled when supported. The training script saves both a last checkpoint and the best validation Top-1 checkpoint.")
+    add_p(doc, "Frozen CLIP does not train any model. Fine-tuned CLIP trains a small part of the pretrained CLIP image encoder plus a classification head, then uses the adapted embedding for retrieval.")
 
     doc.add_heading("Results", level=1)
     add_image(doc, table_img, "Table 1. Comparison of debug and full-dataset experiments.", width=6.5)
     add_image(doc, FIGURE_DIR / "model_recall_comparison.png", "Figure 1. Original debug Recall@K comparison.")
     add_image(doc, FIGURE_DIR / "model_recall_comparison_full.png", "Figure 2. Recall@K comparison including ResNet18 full dataset.")
-    add_p(doc, "The comparison table shows that the debug experiments validate the core pipeline, while the full experiments move the project closer to a realistic product visual search setting. ResNet18 full dataset has the strongest Recall@1 among the full-scope models, while CLIP full achieves stronger Recall@5 and Recall@10. This means ResNet18 is better at returning the first same-category item, whereas CLIP is stronger at placing at least one relevant category match somewhere in a short candidate list.")
+    add_p(doc, "The comparison table shows that ResNet18 has the strongest Recall@1 among the full-scope models, while frozen CLIP achieves stronger Recall@5 and Recall@10. Fine-tuned CLIP improves Recall@1 over frozen CLIP, showing that domain adaptation helps first-rank retrieval, but it slightly reduces the broader top-k recall of frozen CLIP.")
     add_image(doc, FIGURE_DIR / "resnet18_full_training_curves.png", "Figure 3. ResNet18 full training curves.")
     add_p(doc, "The training curves show rapid improvement during early epochs followed by more gradual validation gains. The best validation Top-1 accuracy occurs at epoch 10, while the best validation Top-5 accuracy occurs earlier. This pattern is reasonable for a supervised product classifier: the model quickly learns broad category structure and then slowly improves fine category boundaries.")
     add_image(doc, FIGURE_DIR / "resnet18_full_retrieval_summary.png", "Figure 4. ResNet18 full retrieval summary.")
@@ -373,23 +380,23 @@ def main():
 
     doc.add_heading("Product Demo", level=1)
     add_p(doc, "The Streamlit app turns the experiment into an interactive product demo. Users can upload a product image or select a random sample query from the full test split. The app then retrieves visually similar products from the selected model's train-gallery index. Each result card displays the rank, product image, articleType, cosine similarity score, and image id.")
-    add_p(doc, "The app supports switching between CLIP ViT-B/32 and ResNet18 Full Dataset. Both modes now use the same full train/test split: random sample queries come from the full test split, while retrieval searches a full train-gallery index. This prevents the confusing situation where a query image is treated as test for one model but gallery for another model.")
+    add_p(doc, "The app supports switching between ResNet18 Full Dataset, Frozen CLIP ViT-B/32, and Fine-tuned CLIP ViT-B/32. These modes use the same full train/test split: random sample queries come from the full test split, while retrieval searches a full train-gallery index.")
     add_p(doc, "In a real product deployment, this Streamlit app would correspond to the visual search frontend. A production version would likely move embedding extraction and vector search to a backend service, use FAISS or another approximate nearest-neighbor index, and combine visual similarity with business ranking signals such as price, brand, inventory, click-through rate, and personalization.")
 
     doc.add_heading("Discussion", level=1)
     add_p(doc, "The experiments highlight a useful distinction between supervised category learning and pretrained visual-semantic retrieval. ResNet18 is trained directly on articleType labels, so it learns dataset-specific category boundaries. This helps it achieve strong classification accuracy and strong Recall@1 in the full dataset setting. However, because it is trained to separate articleType classes, it may emphasize category-discriminative features more than broader style or semantic similarity.")
-    add_p(doc, "CLIP is not trained on the local dataset, but it is pretrained on broad image-text pairs. Its full-dataset Recall@5 and Recall@10 are higher than ResNet18 full, suggesting that CLIP is especially strong as a candidate recall model. In product search, this is valuable because the ranking system often needs a good short list of candidates before applying business logic or personalization.")
+    add_p(doc, "Frozen CLIP is not trained on the local dataset, but it is pretrained on broad image-text pairs. Its full-dataset Recall@5 and Recall@10 are higher than ResNet18 full, suggesting that CLIP is especially strong as a candidate recall model. Fine-tuned CLIP adapts this representation to articleType labels and improves Recall@1 over frozen CLIP, but with a small loss in broader top-k recall.")
     add_p(doc, "The results also show why classification accuracy alone is insufficient. ResNet18 full has strong Top-1 and Top-5 classification accuracy, but the product demo ultimately depends on retrieval behavior. A user does not only care whether the system says 'Flip Flops'; the user wants to see visually similar flip flops, ranked near the top.")
 
     doc.add_heading("Business Interpretation", level=1)
     add_p(doc, "From a business perspective, this system can be interpreted as the recall layer of a visual product search engine. When a user uploads an image, the system quickly retrieves a set of visually related catalog items. These items could then be re-ranked using structured metadata, user preferences, price, availability, and engagement signals.")
     add_p(doc, "The same embedding infrastructure can support several product features. It can power image-based product discovery, similar item recommendation, automatic product categorization, merchant listing quality checks, and duplicate or near-duplicate detection. On content platforms, it could help connect user-generated images or videos to purchasable products.")
-    add_p(doc, "The model comparison suggests a practical hybrid strategy. ResNet18 is useful when the platform has labeled product data and wants a lightweight supervised model. CLIP is useful when broad generalization and strong Top-K candidate recall are important, especially before task-specific fine-tuning is available.")
+    add_p(doc, "The model comparison suggests a practical hybrid strategy. ResNet18 is useful when the platform has labeled product data and wants a lightweight supervised model. Frozen CLIP is useful when broad generalization and strong Top-K candidate recall are important. Fine-tuned CLIP is useful when the system wants to adapt a pretrained model toward product-category discrimination without training from scratch.")
 
     doc.add_heading("Limitations", level=1)
     add_bullets(doc, [
         "The relevance signal is articleType-level, not exact SKU-level matching.",
-        "The debug CLIP result remains useful for the original notebook comparison, while the product demo now uses the full CLIP train-gallery index.",
+        "The frozen and fine-tuned CLIP results show a tradeoff between broad semantic recall and domain-specific first-rank retrieval.",
         "The system does not yet use FAISS, metadata ranking, or a production backend.",
         "Category imbalance and dataset bias remain important limitations.",
         "The current app is a local Streamlit prototype rather than a deployed service.",
@@ -400,7 +407,7 @@ def main():
     add_bullets(doc, [
         "Scale the full CLIP index with FAISS.",
         "Add FAISS approximate nearest-neighbor search.",
-        "Fine-tune CLIP on product data.",
+        "Try stronger metric-learning losses for fine-tuned CLIP, such as contrastive loss or triplet loss.",
         "Use product metadata such as brand, color, price, and gender for ranking.",
         "Deploy with FastAPI and React and add a user feedback loop.",
         "Evaluate exact-product or SKU-level retrieval if product identity labels become available.",
@@ -408,8 +415,8 @@ def main():
     ])
 
     doc.add_heading("Conclusion", level=1)
-    add_p(doc, "The project successfully builds a product visual search pipeline from dataset preparation through model training, retrieval evaluation, index construction, and an interactive frontend demo. The ResNet18 debug and CLIP debug experiments validate the end-to-end workflow. The full ResNet18 experiment extends the project to 44,405 valid images and 132 articleType classes. The synchronized full CLIP and ResNet18 indexes make the Streamlit demo easier to interpret and more realistic.")
-    add_p(doc, "Overall, the project demonstrates that product recognition and visual retrieval are complementary. Supervised ResNet18 provides strong dataset-specific classification and Recall@1, while CLIP provides strong Top-K candidate recall without local supervised training. Together, these models form a solid foundation for a product visual search system that could later be scaled with FAISS, fine-tuned multimodal embeddings, metadata-aware ranking, and a production web application.")
+    add_p(doc, "The project successfully builds a product visual search pipeline from dataset preparation through model training, retrieval evaluation, index construction, and an interactive frontend demo. The final comparison includes ResNet18 supervised training, frozen CLIP retrieval, and lightweight fine-tuned CLIP.")
+    add_p(doc, "Overall, the project demonstrates that product recognition and visual retrieval are complementary. Supervised ResNet18 provides strong dataset-specific classification and Recall@1, frozen CLIP provides strong Top-K candidate recall, and fine-tuned CLIP demonstrates how domain adaptation can improve pretrained CLIP's first-rank retrieval behavior.")
     doc.save(DOCX_OUT)
     print(f"docx_created={DOCX_OUT}")
     print(f"markdown_created={MD_OUT}")

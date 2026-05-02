@@ -11,7 +11,7 @@ This folder is a cleaned submission copy of the project. The original working fo
 - `src/`: reusable project code.
 - `scripts/`: data preparation, training, indexing, and evaluation scripts.
 - `product_visual_search_retrieval.ipynb`: original project notebook.
-- `colab_all_models_full_pipeline.ipynb`: complete Colab pipeline with the full model run output.
+- `colab_all_models_full_pipeline.ipynb`: runnable Colab pipeline for the full model comparison.
 - `MODEL_RESULTS_SUMMARY.md`: concise summary of the latest model results.
 
 ## Latest Lightweight Results
@@ -49,9 +49,10 @@ This includes:
 
 The final output was split into two zip files by Google Drive. Keep both zip files together.
 
+The most complete saved execution evidence is `submission_assets/colab_all_models_full_pipeline_result.pdf` plus the two final output zip files. The notebook in the repository should be treated as the reproducible pipeline file.
+
 ## GitHub Note
 
 The large zip files, dataset, checkpoints, and indexes are intentionally ignored by `.gitignore`. They are kept locally for assignment submission, but should not be pushed to GitHub.
 
 For GitHub, the useful tracked content should be the source code, notebooks, lightweight reports, and result summaries.
-

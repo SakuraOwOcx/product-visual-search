@@ -1,0 +1,13 @@
+{
+  "recall@1": 0.8289098815414605,
+  "recall@5": 0.9542660068975859,
+  "recall@10": 0.9725596041385515,
+  "query_size": 6669,
+  "gallery_size": 31070,
+  "num_classes": 132,
+  "embedding_dim": 512,
+  "embedding_extraction_time_seconds": 34.789523642999484,
+  "checkpoint_source": "/content/product_visual_search/models/huggingface/timm_vit_base_patch32_clip_224_openai/open_clip_model.safetensors",
+  "index_path": "/content/product_visual_search/outputs/indexes/clip_full_gallery_index.npz",
+  "is_smoke_test": false
+}

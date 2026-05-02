@@ -1,0 +1,64 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+.venv/
+venv/
+env/
+.ipynb_checkpoints/
+
+# Local data and extracted datasets
+data/
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.7z
+
+# Model weights, checkpoints, and large vector indexes
+models/
+outputs/checkpoints/
+outputs/indexes/
+*.pth
+*.pt
+*.ckpt
+*.safetensors
+*.npy
+*.npz
+
+# Generated heavy or local-only output artifacts
+outputs/reports/docx_render_check*/
+outputs/reports/full_docx_render_check*/
+outputs/reports/*console.log
+outputs/reports/gallery_embeddings.npy
+outputs/reports/*_smoke.*
+outputs/figures/*.png
+!outputs/figures/model_recall_comparison.png
+!outputs/figures/model_recall_comparison_full.png
+!outputs/figures/resnet18_full_training_curves.png
+!outputs/figures/resnet18_full_retrieval_summary.png
+
+# Keep lightweight reports and metrics
+!outputs/
+!outputs/reports/
+!outputs/reports/*.csv
+!outputs/reports/*.json
+!outputs/reports/*.md
+!outputs/reports/*.docx
+!outputs/splits/
+!outputs/splits/full_class_mapping.json
+
+# Smoke-test artifacts should stay local even though reports are generally tracked.
+outputs/reports/*_smoke.*
+
+# Local archive/process backups
+_process_archive/
+product_visual_search_retrieval_before_full_resnet.ipynb
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

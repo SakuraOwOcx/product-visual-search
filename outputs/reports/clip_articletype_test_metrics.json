@@ -1,0 +1,10 @@
+{
+  "test_loss": 0.5033388058496462,
+  "test_top1_acc": 0.8666966561703404,
+  "test_top5_acc": 0.9847053531264057,
+  "test_size": 6669,
+  "train_size": 31070,
+  "val_size": 6666,
+  "num_classes": 132,
+  "checkpoint": "/content/product_visual_search/outputs/checkpoints/clip_articletype_best.pth"
+}

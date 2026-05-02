@@ -1,0 +1,10 @@
+{
+  "recall@1": 0.9016344279502174,
+  "recall@5": 0.9392712550607287,
+  "recall@10": 0.9497675813465287,
+  "query_size": 6669,
+  "gallery_size": 31070,
+  "embedding_dim": 512,
+  "index_path": "/content/product_visual_search/outputs/indexes/resnet18_full_gallery_index.npz",
+  "is_smoke_test": false
+}

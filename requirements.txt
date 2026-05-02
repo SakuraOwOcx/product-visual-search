@@ -1,0 +1,12 @@
+streamlit
+numpy
+pandas
+matplotlib
+Pillow
+scikit-learn
+torch
+torchvision
+open_clip_torch
+python-docx
+lxml
+tqdm

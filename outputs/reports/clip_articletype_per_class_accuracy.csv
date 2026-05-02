@@ -1,0 +1,133 @@
+articleType,test_count,top1_correct,top1_accuracy
+Accessory Gift Set,14,14,1.0
+Baby Dolls,3,0,0.0
+Backpacks,108,103,0.9537037037037037
+Bangle,13,13,1.0
+Basketballs,2,2,1.0
+Bath Robe,3,3,1.0
+Beauty Accessory,1,1,1.0
+Belts,122,118,0.9672131147540983
+Blazers,1,1,1.0
+Body Lotion,1,0,0.0
+Booties,2,2,1.0
+Boxers,8,5,0.625
+Bra,71,71,1.0
+Bracelet,10,4,0.4
+Briefs,128,125,0.9765625
+Camisoles,6,3,0.5
+Capris,27,20,0.7407407407407407
+Caps,43,40,0.9302325581395349
+Casual Shoes,427,380,0.8899297423887588
+Churidar,5,4,0.8
+Clothing Set,1,0,0.0
+Clutches,43,21,0.4883720930232558
+Compact,8,7,0.875
+Concealer,1,1,1.0
+Cufflinks,16,15,0.9375
+Deodorant,52,48,0.9230769230769231
+Dresses,69,61,0.8840579710144928
+Duffel Bag,13,7,0.5384615384615384
+Dupatta,18,17,0.9444444444444444
+Earrings,63,62,0.9841269841269841
+Eye Cream,1,0,0.0
+Eyeshadow,7,4,0.5714285714285714
+Face Moisturisers,9,2,0.2222222222222222
+Face Scrub and Exfoliator,1,0,0.0
+Face Wash and Cleanser,4,2,0.5
+Flats,75,16,0.21333333333333335
+Flip Flops,137,118,0.8613138686131386
+Footballs,1,0,0.0
+Formal Shoes,95,77,0.8105263157894737
+Foundation and Primer,12,12,1.0
+Fragrance Gift Set,8,7,0.875
+Free Gifts,13,1,0.07692307692307693
+Gloves,3,3,1.0
+Hair Colour,3,3,1.0
+Handbags,264,255,0.9659090909090909
+Hat,1,0,0.0
+Headband,1,0,0.0
+Heels,199,164,0.8241206030150754
+Highlighter and Blush,8,5,0.625
+Innerwear Vests,37,27,0.7297297297297297
+Jackets,38,22,0.5789473684210527
+Jeans,91,77,0.8461538461538461
+Jeggings,5,3,0.6
+Jewellery Set,8,4,0.5
+Jumpsuit,3,0,0.0
+Kajal and Eyeliner,16,11,0.6875
+Kurta Sets,14,9,0.6428571428571429
+Kurtas,276,263,0.9528985507246377
+Kurtis,35,3,0.08571428571428572
+Laptop Bag,13,5,0.38461538461538464
+Leggings,26,17,0.6538461538461539
+Lehenga Choli,1,0,0.0
+Lip Care,3,3,1.0
+Lip Gloss,21,20,0.9523809523809523
+Lip Liner,7,7,1.0
+Lip Plumper,1,0,0.0
+Lipstick,48,46,0.9583333333333334
+Lounge Pants,9,3,0.3333333333333333
+Lounge Shorts,5,0,0.0
+Lounge Tshirts,1,0,0.0
+Makeup Remover,1,0,0.0
+Mascara,2,0,0.0
+Mask and Peel,2,1,0.5
+Messenger Bag,6,2,0.3333333333333333
+Mobile Pouch,7,0,0.0
+Mufflers,5,2,0.4
+Nail Essentials,1,0,0.0
+Nail Polish,50,50,1.0
+Necklace and Chains,24,20,0.8333333333333334
+Nehru Jackets,1,1,1.0
+Night suits,21,17,0.8095238095238095
+Nightdress,29,15,0.5172413793103449
+Patiala,5,4,0.8
+Pendant,27,23,0.8518518518518519
+Perfume and Body Mist,92,84,0.9130434782608695
+Rain Jacket,2,2,1.0
+Ring,17,16,0.9411764705882353
+Robe,1,0,0.0
+Rompers,2,2,1.0
+Rucksacks,1,0,0.0
+Salwar,5,2,0.4
+Salwar and Dupatta,1,1,1.0
+Sandals,134,102,0.7611940298507462
+Sarees,64,63,0.984375
+Scarves,18,11,0.6111111111111112
+Shapewear,2,0,0.0
+Shirts,483,467,0.9668737060041408
+Shoe Accessories,4,1,0.25
+Shorts,82,72,0.8780487804878049
+Shrug,1,0,0.0
+Skirts,19,14,0.7368421052631579
+Socks,103,101,0.9805825242718447
+Sports Sandals,10,3,0.3
+Sports Shoes,306,238,0.7777777777777778
+Stockings,5,5,1.0
+Stoles,13,8,0.6153846153846154
+Sunglasses,161,161,1.0
+Sunscreen,3,3,1.0
+Suspenders,6,5,0.8333333333333334
+Sweaters,41,28,0.6829268292682927
+Sweatshirts,42,31,0.7380952380952381
+Swimwear,2,0,0.0
+Tablet Sleeve,1,0,0.0
+Ties,40,39,0.975
+Tights,2,0,0.0
+Toner,1,0,0.0
+Tops,265,189,0.7132075471698113
+Track Pants,45,40,0.8888888888888888
+Tracksuits,5,4,0.8
+Travel Accessory,3,0,0.0
+Trolley Bag,1,0,0.0
+Trousers,79,71,0.8987341772151899
+Trunk,21,20,0.9523809523809523
+Tshirts,1060,1017,0.9594339622641509
+Tunics,35,8,0.22857142857142856
+Umbrellas,1,1,1.0
+Waist Pouch,2,0,0.0
+Waistcoat,3,0,0.0
+Wallets,141,123,0.8723404255319149
+Watches,382,375,0.981675392670157
+Water Bottle,1,1,1.0
+Wristbands,1,0,0.0

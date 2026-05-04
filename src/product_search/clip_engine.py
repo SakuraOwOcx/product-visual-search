@@ -31,14 +31,10 @@ class CLIPImageDataset(Dataset):
 
 def load_clip_model(checkpoint_path=LOCAL_CLIP_CHECKPOINT):
     checkpoint_path = Path(checkpoint_path)
-    if not checkpoint_path.exists():
-        raise FileNotFoundError(
-            f"Local CLIP checkpoint not found: {checkpoint_path}. "
-            "Run the existing download script first, or place the checkpoint at this path."
-        )
+    pretrained_source = str(checkpoint_path) if checkpoint_path.exists() else "openai"
     model, _, preprocess = open_clip.create_model_and_transforms(
         MODEL_NAME,
-        pretrained=str(checkpoint_path),
+        pretrained=pretrained_source,
         device=DEVICE,
     )
     model = model.to(DEVICE)

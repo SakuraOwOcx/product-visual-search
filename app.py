@@ -17,8 +17,9 @@ from src.product_search.config import (
     RESNET18_FULL_BEST_CHECKPOINT,
     RESNET18_FULL_INDEX_PATH,
 )
-from src.product_search.data_utils import get_full_gallery_query_dataframes, get_gallery_query_dataframes
+from src.product_search.data_utils import get_full_gallery_query_dataframes, get_gallery_query_dataframes, load_full_split_dataframe
 from src.product_search.index_utils import build_clip_full_gallery_index, build_gallery_index, load_visual_search_index
+from src.product_search.path_utils import resolve_project_path, to_project_relative
 from src.product_search.resnet_engine import encode_resnet_pil_image, load_resnet18_full_model
 from src.product_search.search_engine import cosine_top_k
 
@@ -51,7 +52,7 @@ def reset_cached_index():
 
 
 def load_image_from_path(path):
-    return Image.open(path).convert("RGB")
+    return Image.open(resolve_project_path(path)).convert("RGB")
 
 
 def show_model_comparison():
@@ -92,6 +93,7 @@ def render_results(results_df, query_class=None, query_image_id=None):
         for col, (_, row) in zip(cols, results_df.iloc[start:start + cards_per_row].iterrows()):
             with col:
                 image_path = Path(row["image_path"])
+                image_path = resolve_project_path(image_path)
                 st.image(str(image_path), use_container_width=True)
                 match_text = ""
                 if query_class is not None:
@@ -109,7 +111,7 @@ def render_results(results_df, query_class=None, query_image_id=None):
 def get_resnet_query_dataframe():
     if not FULL_SPLIT_CSV.exists():
         return pd.DataFrame()
-    split_df = pd.read_csv(FULL_SPLIT_CSV)
+    split_df = load_full_split_dataframe()
     query_df = split_df[split_df["split"] == "test"].copy()
     query_df = query_df.rename(columns={"articleType": "class_name"})
     return query_df.reset_index(drop=True)
@@ -144,7 +146,7 @@ def main():
     st.title("Product Visual Search Demo")
     st.write(
         "Upload a product image or sample an existing query image. "
-        "The app uses frozen CLIP embeddings and cosine similarity to retrieve visually similar products."
+        "The app compares a full ResNet18 retrieval pipeline with a frozen CLIP retrieval pipeline."
     )
 
     with st.sidebar:
@@ -152,14 +154,14 @@ def main():
         model_choice = st.selectbox(
             "Retrieval model",
             ["CLIP ViT-B/32", "ResNet18 Full Dataset"],
-            index=0,
+            index=1,
         )
         top_k = st.selectbox("Top-K results", [5, 10, 20], index=0)
 
         st.divider()
         st.write("Index status")
         selected_index_path = CLIP_FULL_INDEX_PATH if model_choice == "CLIP ViT-B/32" else RESNET18_FULL_INDEX_PATH
-        st.code(str(selected_index_path), language="text")
+        st.code(to_project_relative(selected_index_path), language="text")
         current_index_info = load_visual_search_index(selected_index_path)
         if current_index_info is not None:
             st.success("Cached index found.")
@@ -171,13 +173,19 @@ def main():
 
         if model_choice == "CLIP ViT-B/32" and st.button("Build / refresh full CLIP index"):
             if not LOCAL_CLIP_CHECKPOINT.exists():
-                st.error(f"Local CLIP checkpoint not found: {LOCAL_CLIP_CHECKPOINT}")
+                st.info(
+                    "Local CLIP checkpoint not found. The app will fall back to OpenCLIP's "
+                    "official `openai` weights and may download them on first use."
+                )
+                with st.spinner("Building CLIP full train-gallery index. First run may download CLIP weights."):
+                    summary = build_clip_full_gallery_index()
+                    reset_cached_index()
             else:
                 with st.spinner("Building CLIP full train-gallery index. No CLIP training, no model download."):
                     summary = build_clip_full_gallery_index()
                     reset_cached_index()
-                st.success("CLIP full train-gallery index built.")
-                st.json(summary)
+            st.success("CLIP full train-gallery index built.")
+            st.json(summary)
 
         if model_choice == "ResNet18 Full Dataset":
             st.info(
@@ -188,11 +196,10 @@ def main():
         show_comparison = st.checkbox("Show model comparison", value=False)
 
     if model_choice == "CLIP ViT-B/32" and not LOCAL_CLIP_CHECKPOINT.exists():
-        st.error(
-            "Local CLIP checkpoint is missing. This app does not download models automatically. "
-            f"Expected checkpoint: {LOCAL_CLIP_CHECKPOINT}"
+        st.info(
+            "Local CLIP checkpoint is missing. The app can still use OpenCLIP's official "
+            "`openai` weights and download them on first model load."
         )
-        return
 
     if show_comparison:
         show_model_comparison()

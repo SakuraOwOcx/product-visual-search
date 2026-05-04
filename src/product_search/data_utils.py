@@ -13,6 +13,7 @@ from .config import (
     SEED,
     STYLES_CSV,
 )
+from .path_utils import path_exists, resolve_project_path, to_project_relative
 
 
 def normalize_split_name(name):
@@ -92,7 +93,7 @@ def scan_image_index():
         rows.append(
             {
                 "image_id": image_id,
-                "image_path": str(image_path),
+                "image_path": to_project_relative(image_path),
                 "class_name": class_name,
                 "split": infer_split_from_path(image_path),
             }
@@ -124,6 +125,48 @@ def build_debug_subset(num_classes=DEBUG_NUM_CLASSES, max_images_per_class=DEBUG
     return debug_df[["image_id", "image_path", "class_id", "class_name", "split"]], id_to_class, label_column
 
 
+def relocate_image_paths(df, image_dir=CANONICAL_IMAGE_DIR, keep_relative=False):
+    df = df.copy()
+    if "image_path" not in df.columns or "image_id" not in df.columns:
+        return df
+
+    missing_mask = ~df["image_path"].map(path_exists)
+    if not missing_mask.any():
+        if keep_relative:
+            df["image_path"] = df["image_path"].map(lambda p: to_project_relative(resolve_project_path(p)))
+        else:
+            df["image_path"] = df["image_path"].map(lambda p: str(resolve_project_path(p)))
+        return df
+
+    if image_dir.exists():
+        image_map = {
+            p.stem: p
+            for p in image_dir.rglob("*")
+            if p.is_file() and p.suffix.lower() in IMAGE_EXTENSIONS
+        }
+        relocated = df.loc[missing_mask, "image_id"].astype(str).map(image_map)
+        found_mask = relocated.notna()
+        if found_mask.any():
+            df.loc[relocated[found_mask].index, "image_path"] = relocated[found_mask].map(str)
+
+    if keep_relative:
+        df["image_path"] = df["image_path"].map(lambda p: to_project_relative(resolve_project_path(p)))
+    else:
+        df["image_path"] = df["image_path"].map(lambda p: str(resolve_project_path(p)))
+    return df
+
+
+def load_full_split_dataframe(split_csv=FULL_SPLIT_CSV):
+    if not split_csv.exists():
+        raise FileNotFoundError(f"Full split CSV not found: {split_csv}")
+    split_df = pd.read_csv(split_csv)
+    required = {"image_id", "image_path", "articleType", "class_id", "split"}
+    missing = required - set(split_df.columns)
+    if missing:
+        raise ValueError(f"Full split CSV is missing columns: {sorted(missing)}")
+    return relocate_image_paths(split_df)
+
+
 def get_gallery_query_dataframes():
     debug_df, id_to_class, label_column = build_debug_subset()
     gallery_df = debug_df[debug_df["split"] == "train"].reset_index(drop=True)
@@ -134,14 +177,7 @@ def get_gallery_query_dataframes():
 
 
 def get_full_gallery_query_dataframes():
-    if not FULL_SPLIT_CSV.exists():
-        raise FileNotFoundError(f"Full split CSV not found: {FULL_SPLIT_CSV}")
-    split_df = pd.read_csv(FULL_SPLIT_CSV)
-    required = {"image_id", "image_path", "articleType", "class_id", "split"}
-    missing = required - set(split_df.columns)
-    if missing:
-        raise ValueError(f"Full split CSV is missing columns: {sorted(missing)}")
-    full_df = split_df.copy()
+    full_df = load_full_split_dataframe()
     full_df["class_name"] = full_df["articleType"].astype(str)
     gallery_df = full_df[full_df["split"] == "train"].reset_index(drop=True)
     query_df = full_df[full_df["split"] == "test"].reset_index(drop=True)

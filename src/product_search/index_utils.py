@@ -6,7 +6,7 @@ import pandas as pd
 
 from .clip_engine import extract_gallery_embeddings, load_clip_model
 from .config import CLIP_FULL_INDEX_PATH, INDEX_PATH, LOCAL_CLIP_CHECKPOINT, RESNET18_FULL_INDEX_PATH
-from .data_utils import get_full_gallery_query_dataframes, get_gallery_query_dataframes
+from .data_utils import get_full_gallery_query_dataframes, get_gallery_query_dataframes, relocate_image_paths
 
 
 def index_exists(index_path=INDEX_PATH):
@@ -51,6 +51,7 @@ def load_visual_search_index(index_path):
 
     if "metadata_json" in data.files:
         metadata = json.loads(str(data["metadata_json"]))
+        metadata = relocate_image_paths(pd.DataFrame(metadata), keep_relative=False).to_dict("records")
         model_name = str(data["model_name"]) if "model_name" in data.files else "clip"
         index_scope = str(data["index_scope"]) if "index_scope" in data.files else "debug gallery"
     else:
@@ -68,6 +69,7 @@ def load_visual_search_index(index_path):
             }
             for image_id, image_path, article_type, split in zip(image_ids, image_paths, article_types, splits)
         ]
+        metadata = relocate_image_paths(pd.DataFrame(metadata), keep_relative=False).to_dict("records")
         model_name = str(data["model_name"]) if "model_name" in data.files else "resnet18"
         index_scope = str(data["index_scope"]) if "index_scope" in data.files else "full train gallery"
 

@@ -55,6 +55,13 @@ def load_image_from_path(path):
     return Image.open(resolve_project_path(path)).convert("RGB")
 
 
+def render_streamlit_image(image, **kwargs):
+    try:
+        st.image(image, use_container_width=True, **kwargs)
+    except TypeError:
+        st.image(image, use_column_width=True, **kwargs)
+
+
 def show_model_comparison():
     summary_path = REPORT_DIR / "experiment_summary.csv"
     recall_fig = FIGURE_DIR / "model_recall_comparison.png"
@@ -94,7 +101,7 @@ def render_results(results_df, query_class=None, query_image_id=None):
             with col:
                 image_path = Path(row["image_path"])
                 image_path = resolve_project_path(image_path)
-                st.image(str(image_path), use_container_width=True)
+                render_streamlit_image(str(image_path))
                 match_text = ""
                 if query_class is not None:
                     match_text = "match" if row["class_name"] == query_class else "different"
@@ -233,6 +240,7 @@ def main():
                 st.warning("No query dataframe is available yet. Run the split script first.")
             else:
                 st.session_state["sample_query"] = query_df.sample(1).iloc[0].to_dict()
+                st.session_state["auto_search"] = True
 
     query_image = None
     query_class = None
@@ -252,7 +260,9 @@ def main():
     else:
         query_image_id = None
 
-    search_clicked = st.button("Search", type="primary")
+    manual_search = st.button("Search", type="primary")
+    auto_search = st.session_state.pop("auto_search", False)
+    search_clicked = bool(manual_search or auto_search)
 
     if query_image is None:
         st.info("Upload an image or click Random sample query to begin.")
@@ -261,7 +271,7 @@ def main():
     left, right = st.columns([1, 3])
     with left:
         st.subheader("Query Image")
-        st.image(query_image, use_container_width=True)
+        render_streamlit_image(query_image)
         if query_class:
             st.caption(f"articleType: {query_class}")
         if query_source:
@@ -270,7 +280,10 @@ def main():
     with right:
         st.subheader(f"Top-{top_k} Retrieved Products")
         if not search_clicked:
-            st.info("Click Search to run retrieval.")
+            st.info(
+                "Click Search to run retrieval. If you used Random sample query, the app should search automatically. "
+                "On CPU, the first search can take around a minute while the model and gallery index warm up."
+            )
             return
         index_info = load_visual_search_index(selected_index_path)
         if index_info is None:
